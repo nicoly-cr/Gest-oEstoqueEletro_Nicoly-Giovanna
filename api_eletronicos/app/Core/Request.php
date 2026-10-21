@@ -51,3 +51,5 @@ class Request
         return rtrim($path, '/') ?: '/';
     }
 }
+
+?>
