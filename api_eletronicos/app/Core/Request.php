@@ -46,9 +46,19 @@ class Request
      */
     public static function uri(): string
     {
-        $uri = $_SERVER['REQUEST_URI'] ?? '/';
-        $path = parse_url($uri, PHP_URL_PATH);
-        return rtrim($path, '/') ?: '/';
+        // 1. Extrai apenas o caminho da URL limpando query strings (?id=1)
+        $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+
+        // 2. Identifica o diretório onde o index.php está sendo executado
+        $scriptDir = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+
+        // 3. Remove o diretório do script do início do caminho recebido
+        if ($scriptDir !== '/' && strpos($uri, $scriptDir) === 0) {
+            $uri = substr($uri, strlen($scriptDir));
+        }
+
+        // 4. Garante o retorno sanitizado da rota com a barra inicial (ex: '/eletronico')
+        return '/' . ltrim($uri, '/');
     }
 }
 
