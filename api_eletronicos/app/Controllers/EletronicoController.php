@@ -161,6 +161,37 @@ class EletronicoController
             'mensagem' => 'Dados do eletrônico atualizados com sucesso.'
         ], 200);
     }
+
+    /**
+     * Rota 6: DELETE /eletronico — Desativa dados de um eletrônico
+     */
+    public function desativar(): void
+    {
+        // Captura o 'id' da Query String (?id=1)
+        $id = Request::query('id');
+
+        if (!$id || !is_numeric($id)) {
+            JsonView::render([
+                'erro' => true,
+                'mensagem' => 'Informe o ID do eletrônico a ser desativado.'
+            ], 400);
+            return;
+        }
+
+        try {
+            Eletronico::desativar((int)$id);
+
+            JsonView::render([
+                'erro' => false,
+                'mensagem' => 'Eletrônico desativado com sucesso.'
+            ], 200);
+        } catch (Exception $e) {
+            JsonView::render([
+                'erro' => true,
+                'mensagem' => $e->getMessage()
+            ], 400);
+        }
+    }
 }
 
 ?>

@@ -29,17 +29,16 @@ class Request
     }
 
     /**
-     * Captura um parâmetro da Query String de forma robusta.
-     * Tenta ler do $_GET e faz fallback direto na REQUEST_URI.
+     * Captura um parâmetro da Query String lendo direto do $_GET ou da REQUEST_URI.
      */
     public static function query(?string $key = null, $default = null)
     {
-        // 1. Tenta pegar direto do $_GET tradicional
+        // 1. Tenta capturar direto do $_GET
         if ($key !== null && isset($_GET[$key]) && $_GET[$key] !== '') {
             return $_GET[$key];
         }
 
-        // 2. Fallback: Parseia a QUERY_STRING diretamente da URL original
+        // 2. Extrai a query string manualmente da URL enviada
         $queryString = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY);
         $params = [];
         if ($queryString) {

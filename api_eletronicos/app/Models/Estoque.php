@@ -137,6 +137,15 @@ class Estoque
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function buscarPorId($id) {
+        $sql = "SELECT * FROM eletronicos WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC); // Usar fetch() para trazer apenas 1 registo
+    }
 }
 
 ?>

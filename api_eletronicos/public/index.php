@@ -66,8 +66,9 @@ switch ($uri) {
         break;
 
     // Rota de Movimentações / Histórico (6)
+    // public/index.php
     case '/movimentacoes':
-        $controller = new EstoqueController(); // ou MovimentacaoController caso optem por separar
+        $controller = new EstoqueController();
 
         if ($method === 'GET') {
             // 6. GET /movimentacoes — Consultar histórico de movimentações
@@ -97,8 +98,6 @@ switch ($uri) {
         }
         break;
 
-    
-        
     // Rota padrão para endpoints não mapeados
     default:
         JsonView::render(['erro' => true, 'mensagem' => 'Rota não encontrada.'], 404);

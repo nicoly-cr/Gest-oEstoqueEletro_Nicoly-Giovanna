@@ -9,8 +9,7 @@ use Exception;
 class Eletronico 
 {
     /**
-     * Retorna todos os eletrônicos ativos juntamente com a quantidade
-     * em estoque e o indicador de estoque baixo.
+     * Lista todos os eletrônicos ativos com os seus respetivos saldos de estoque.
      *
      * @return array
      */
@@ -38,123 +37,28 @@ class Eletronico
                 e.sistema_operacional,
                 e.cor,
                 e.estoque_minimo,
-                COALESCE(es.quantidade_atual, 0) AS quantidade_atual,
+                COALESCE(est.quantidade_atual, 0) AS quantidade_atual,
                 CASE 
-                    WHEN COALESCE(es.quantidade_atual, 0) <= e.estoque_minimo THEN 1 
-                    ELSE 0 
+                    WHEN COALESCE(est.quantidade_atual, 0) <= e.estoque_minimo THEN 1
+                    ELSE 0
                 END AS estoque_baixo
             FROM eletronicos e
-            LEFT JOIN estoque es ON e.id_eletronico = es.id_eletronico
+            LEFT JOIN estoque est ON e.id_eletronico = est.id_eletronico
             WHERE e.ativo = 1
             ORDER BY e.nome ASC
         ";
 
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute();
-
+        $stmt = $pdo->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
-     * Cadastra um eletrônico, seu estoque inicial e o registro de movimentação inicial via Transação PDO.
-     * 
-     * @param array $dados
-     * @return int ID do eletrônico inserido
-     */
-    public static function cadastrar(array $dados): int
-    {
-        $pdo = Database::getInstance();
-
-        try {
-            $pdo->beginTransaction();
-
-            // 1. Inserção na tabela eletronicos
-            $sqlEletronico = "
-                INSERT INTO eletronicos (
-                    nome, descricao, numero_lote, fabricante, categoria, 
-                    tensao, dimensoes, resolucao, capacidade, conectividade, 
-                    preco, processador, memoria, camera, sistema_operacional, 
-                    cor, estoque_minimo
-                ) VALUES (
-                    :nome, :descricao, :numero_lote, :fabricante, :categoria, 
-                    :tensao, :dimensoes, :resolucao, :capacidade, :conectividade, 
-                    :preco, :processador, :memoria, :camera, :sistema_operacional, 
-                    :cor, :estoque_minimo
-                )
-            ";
-
-            $stmt = $pdo->prepare($sqlEletronico);
-            $stmt->execute([
-                ':nome'                => $dados['nome'],
-                ':descricao'           => $dados['descricao'] ?? '',
-                ':numero_lote'         => $dados['numero_lote'],
-                ':fabricante'          => $dados['fabricante'],
-                ':categoria'           => $dados['categoria'],
-                ':tensao'              => $dados['tensao'] ?? null,
-                ':dimensoes'           => $dados['dimensoes'] ?? null,
-                ':resolucao'           => $dados['resolucao'] ?? null,
-                ':capacidade'          => $dados['capacidade'] ?? null,
-                ':conectividade'       => $dados['conectividade'] ?? null,
-                ':preco'               => $dados['preco'] ?? 0.00,
-                ':processador'         => $dados['processador'] ?? null,
-                ':memoria'             => $dados['memoria'] ?? null,
-                ':camera'              => $dados['camera'] ?? null,
-                ':sistema_operacional' => $dados['sistema_operacional'] ?? null,
-                ':cor'                 => $dados['cor'] ?? null,
-                ':estoque_minimo'      => $dados['estoque_minimo'] ?? 5
-            ]);
-
-            $idEletronico = (int) $pdo->lastInsertId();
-            $estoqueInicial = (int) ($dados['estoque_inicial'] ?? 0);
-
-            // 2. Inserção na tabela estoque
-            $sqlEstoque = "
-                INSERT INTO estoque (id_eletronico, quantidade_atual) 
-                VALUES (:id_eletronico, :quantidade)
-            ";
-            $stmtEstoque = $pdo->prepare($sqlEstoque);
-            $stmtEstoque->execute([
-                ':id_eletronico' => $idEletronico,
-                ':quantidade'   => $estoqueInicial
-            ]);
-
-            // 3. Inserção na tabela movimentacoes (Carga inicial)
-            // id_usuario = 1 fixo por não haver autenticação
-            $sqlMov = "
-                INSERT INTO movimentacoes (
-                    id_eletronico, id_usuario, tipo, quantidade, 
-                    saldo_anterior, saldo_posterior, observacao
-                ) VALUES (
-                    :id_eletronico, 1, 'ENTRADA', :quantidade, 
-                    0, :saldo_posterior, 'Carga inicial de cadastro'
-                )
-            ";
-            $stmtMov = $pdo->prepare($sqlMov);
-            $stmtMov->execute([
-                ':id_eletronico'   => $idEletronico,
-                ':quantidade'      => $estoqueInicial,
-                ':saldo_posterior' => $estoqueInicial
-            ]);
-
-            $pdo->commit();
-
-            return $idEletronico;
-
-        } catch (Exception $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            throw $e;
-        }
-    }
-
-    /**
-     * Busca os dados cadastrais e o estoque de um eletrônico específico pelo ID.
+     * Busca um eletrônico ativo específico pelo seu ID.
      *
      * @param int $id
-     * @return array|false
+     * @return array|null
      */
-    public static function buscarPorId(int $id)
+    public static function buscarPorId(int $id): ?array
     {
         $pdo = Database::getInstance();
 
@@ -178,29 +82,30 @@ class Eletronico
                 e.sistema_operacional,
                 e.cor,
                 e.estoque_minimo,
-                COALESCE(es.quantidade_atual, 0) AS quantidade_atual,
+                COALESCE(est.quantidade_atual, 0) AS quantidade_atual,
                 CASE 
-                    WHEN COALESCE(es.quantidade_atual, 0) <= e.estoque_minimo THEN 1 
-                    ELSE 0 
+                    WHEN COALESCE(est.quantidade_atual, 0) <= e.estoque_minimo THEN 1
+                    ELSE 0
                 END AS estoque_baixo
             FROM eletronicos e
-            LEFT JOIN estoque es ON e.id_eletronico = es.id_eletronico
+            LEFT JOIN estoque est ON e.id_eletronico = est.id_eletronico
             WHERE e.id_eletronico = :id AND e.ativo = 1
         ";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([':id' => $id]);
+        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $resultado ?: null;
     }
 
     /**
-     * Busca eletrônicos ativos cujo nome contenha o termo informado.
+     * Busca eletrônicos ativos pelo nome (busca parcial / LIKE).
      *
-     * @param string $nome
+     * @param string $termo
      * @return array
      */
-    public static function buscarPorNome(string $nome): array
+    public static function buscarPorNome(string $termo): array
     {
         $pdo = Database::getInstance();
 
@@ -213,84 +118,171 @@ class Eletronico
                 e.fabricante,
                 e.categoria,
                 e.tensao,
+                e.dimensoes,
+                e.resolucao,
+                e.capacidade,
+                e.conectividade,
                 e.preco,
-                COALESCE(es.quantidade_atual, 0) AS quantidade_atual,
+                e.processador,
+                e.memoria,
+                e.camera,
+                e.sistema_operacional,
+                e.cor,
+                e.estoque_minimo,
+                COALESCE(est.quantidade_atual, 0) AS quantidade_atual,
                 CASE 
-                    WHEN COALESCE(es.quantidade_atual, 0) <= e.estoque_minimo THEN 1 
-                    ELSE 0 
+                    WHEN COALESCE(est.quantidade_atual, 0) <= e.estoque_minimo THEN 1
+                    ELSE 0
                 END AS estoque_baixo
             FROM eletronicos e
-            LEFT JOIN estoque es ON e.id_eletronico = es.id_eletronico
-            WHERE e.nome LIKE :nome AND e.ativo = 1
+            LEFT JOIN estoque est ON e.id_eletronico = est.id_eletronico
+            WHERE e.nome LIKE :termo AND e.ativo = 1
             ORDER BY e.nome ASC
         ";
 
         $stmt = $pdo->prepare($sql);
-        // Adiciona os curingas % para permitir busca por qualquer parte do nome
-        $stmt->execute([':nome' => '%' . $nome . '%']);
-
+        $stmt->execute([':termo' => "%{$termo}%"]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
-     * Atualiza os dados cadastrais de um eletrônico existente.
+     * Cadastra um novo eletrônico e cria o seu registro de estoque inicial.
      *
      * @param array $dados
-     * @return bool Retorna true se a alteração afetou alguma linha, ou false se o ID não existia
+     * @return int ID do produto inserido
      */
-    public static function atualizar(array $dados): bool
+    public static function cadastrar(array $dados): int
+    {
+        $pdo = Database::getInstance();
+
+        try {
+            $pdo->beginTransaction();
+
+            $sql = "
+                INSERT INTO eletronicos (
+                    nome, descricao, numero_lote, fabricante, categoria, 
+                    tensao, dimensoes, resolucao, capacidade, conectividade, 
+                    preco, processador, memoria, camera, sistema_operacional, 
+                    cor, estoque_minimo, ativo
+                ) VALUES (
+                    :nome, :descricao, :numero_lote, :fabricante, :categoria, 
+                    :tensao, :dimensoes, :resolucao, :capacidade, :conectividade, 
+                    :preco, :processador, :memoria, :camera, :sistema_operacional, 
+                    :cor, :estoque_minimo, 1
+                )
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':nome'                => $dados['nome'],
+                ':descricao'           => $dados['descricao'] ?? null,
+                ':numero_lote'         => $dados['numero_lote'] ?? null,
+                ':fabricante'          => $dados['fabricante'] ?? null,
+                ':categoria'           => $dados['categoria'] ?? null,
+                ':tensao'              => $dados['tensao'] ?? null,
+                ':dimensoes'           => $dados['dimensoes'] ?? null,
+                ':resolucao'           => $dados['resolucao'] ?? null,
+                ':capacidade'          => $dados['capacidade'] ?? null,
+                ':conectividade'       => $dados['conectividade'] ?? null,
+                ':preco'               => $dados['preco'],
+                ':processador'         => $dados['processador'] ?? null,
+                ':memoria'             => $dados['memoria'] ?? null,
+                ':camera'              => $dados['camera'] ?? null,
+                ':sistema_operacional' => $dados['sistema_operacional'] ?? null,
+                ':cor'                 => $dados['cor'] ?? null,
+                ':estoque_minimo'      => $dados['estoque_minimo'] ?? 0
+            ]);
+
+            $idEletronico = (int) $pdo->lastInsertId();
+
+            // Cria a linha inicial na tabela estoque
+            $sqlEstoque = "INSERT INTO estoque (id_eletronico, quantidade_atual) VALUES (:id, :qtd)";
+            $stmtEstoque = $pdo->prepare($sqlEstoque);
+            $stmtEstoque->execute([
+                ':id'  => $idEletronico,
+                ':qtd' => $dados['quantidade_inicial'] ?? 0
+            ]);
+
+            $pdo->commit();
+            return $idEletronico;
+
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Atualiza os dados de um eletrônico existente.
+     *
+     * @param int $id
+     * @param array $dados
+     * @return bool
+     */
+    public static function atualizar(int $id, array $dados): bool
     {
         $pdo = Database::getInstance();
 
         $sql = "
             UPDATE eletronicos SET
-                nome                = :nome,
-                descricao           = :descricao,
-                numero_lote         = :numero_lote,
-                fabricante          = :fabricante,
-                categoria           = :categoria,
-                tensao              = :tensao,
-                dimensoes           = :dimensoes,
-                resolucao           = :resolucao,
-                capacidade          = :capacidade,
-                conectividade       = :conectividade,
-                preco               = :preco,
-                processador         = :processador,
-                memoria             = :memoria,
-                camera              = :camera,
+                nome = :nome,
+                descricao = :descricao,
+                numero_lote = :numero_lote,
+                fabricante = :fabricante,
+                categoria = :categoria,
+                tensao = :tensao,
+                dimensoes = :dimensoes,
+                resolucao = :resolucao,
+                capacidade = :capacidade,
+                conectividade = :conectividade,
+                preco = :preco,
+                processador = :processador,
+                memoria = :memoria,
+                camera = :camera,
                 sistema_operacional = :sistema_operacional,
-                cor                 = :cor,
-                estoque_minimo      = :estoque_minimo
-            WHERE id_eletronico = :id_eletronico AND ativo = 1
+                cor = :cor,
+                estoque_minimo = :estoque_minimo
+            WHERE id_eletronico = :id AND ativo = 1
         ";
 
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            ':id_eletronico'       => $dados['id_eletronico'],
+        return $stmt->execute([
+            ':id'                  => $id,
             ':nome'                => $dados['nome'],
-            ':descricao'           => $dados['descricao'] ?? '',
-            ':numero_lote'         => $dados['numero_lote'],
-            ':fabricante'          => $dados['fabricante'],
-            ':categoria'           => $dados['categoria'],
+            ':descricao'           => $dados['descricao'] ?? null,
+            ':numero_lote'         => $dados['numero_lote'] ?? null,
+            ':fabricante'          => $dados['fabricante'] ?? null,
+            ':categoria'           => $dados['categoria'] ?? null,
             ':tensao'              => $dados['tensao'] ?? null,
             ':dimensoes'           => $dados['dimensoes'] ?? null,
             ':resolucao'           => $dados['resolucao'] ?? null,
             ':capacidade'          => $dados['capacidade'] ?? null,
             ':conectividade'       => $dados['conectividade'] ?? null,
-            ':preco'               => $dados['preco'] ?? 0.00,
+            ':preco'               => $dados['preco'],
             ':processador'         => $dados['processador'] ?? null,
             ':memoria'             => $dados['memoria'] ?? null,
             ':camera'              => $dados['camera'] ?? null,
             ':sistema_operacional' => $dados['sistema_operacional'] ?? null,
             ':cor'                 => $dados['cor'] ?? null,
-            ':estoque_minimo'      => $dados['estoque_minimo'] ?? 5
+            ':estoque_minimo'      => $dados['estoque_minimo'] ?? 0
         ]);
-
-        // Retorna true se alterou alguma linha no banco
-        return $stmt->rowCount() > 0;
     }
 
-    
-}
+    /**
+     * Realiza a exclusão lógica do eletrônico (define ativo = 0).
+     * Preserva o histórico de movimentações na base de dados.
+     *
+     * @param int $id
+     * @return bool
+     */
+    public static function desativar(int $id): bool
+    {
+        $pdo = Database::getInstance();
 
-?>
+        $sql = "UPDATE eletronicos SET ativo = 0 WHERE id_eletronico = :id";
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([':id' => $id]);
+    }
+}
