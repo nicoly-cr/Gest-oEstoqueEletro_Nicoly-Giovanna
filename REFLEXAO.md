@@ -139,45 +139,43 @@ O que aprendemos: Como utilizar Rollback de transações PDO para proteger a apl
 ======================================================================================================
 
 
+======================================================================================================
+## [28/10/2026] GET /movimentacoes — EstoqueController::historico() [CT09]
+Integrantes e papéis: Driver: Nicoly | Navigator: Nicoly  
+Problema: Mapear a rota de histórico geral de movimentações de estoque integrando as tabelas `movimentacoes` e `eletronicos`.  
+Nossa tentativa: Incluir o `case '/movimentacoes'` no roteador `public/index.php` e acionar o método `historico()` da controller sem filtros.  
+Prompt enviado à IA: "Como preencher o modelo do CT09 para o relatório de testes da API?"  
+Sugestão da IA: Explicar a consulta `SELECT` com `INNER JOIN` entre `movimentacoes` e `eletronicos` ordenando por `data_movimentacao DESC` e estruturar a tabela formal do CT09.  
+Decisão da dupla: Mapear a rota e submeter a requisição `GET /movimentacoes` no Postman.  
+Teste realizado: Requisição `GET http://localhost/.../api_eletronicos/movimentacoes` no Postman.  
+Resultado obtido: Status `200 OK` com `"total": 6` listando todas as movimentações gravadas por ordem cronológica decrescente.  
+O que aprendemos: Como relacionar tabelas usando `INNER JOIN` no PDO para enriquecer a resposta JSON de auditoria.  
+======================================================================================================
 
 
+======================================================================================================
+## [28/10/2026] GET /movimentacoes?id=1 — EstoqueController::historico() [CT10 - Ajuste de Rota]
+Integrantes e papéis: Driver: Nicoly | Navigator: Nicoly  
+Problema: A requisição `GET /movimentacoes?id=1` retornava todas as 6 movimentações (`"total": 6`) ou erro `404 Not Found` devido à divergência de barra no `case` do `switch` no `public/index.php`.  
+Nossa tentativa: Alterar a declaração no `index.php` para `case 'movimentacoes':` sem barra, o que acabou desviando a rota para o tratamento padrão.  
+Prompt enviado à IA: Imagem do Postman exibindo retorno de todas as movimentações e código HTTP 404, solicitando ajuda para filtrar por ID.  
+Sugestão da IA: Explicar o tratamento da variável `$route` no Front Controller (`parse_url`), demonstrar o uso do `Request::query('id')` e orientar a restauração do `case '/movimentacoes':` com a barra inicial.  
+Decisão da dupla: Restaurar a rota como `case '/movimentacoes':` no `public/index.php` e garantir a captura do Query Param `id` via `Request::query('id')` no `EstoqueController`.  
+Teste realizado: Requisição `GET http://localhost/.../api_eletronicos/movimentacoes?id=1` no Postman.  
+Resultado obtido: Status `200 OK` com `"total": 1` trazendo exclusivamente o histórico do "Notebook Vision 14".  
+O que aprendemos: A importância da correspondência exata de strings no Front Controller para tratar Query Parameters e direcionar requisições ao Controller correto.  
+======================================================================================================
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-========================================== MODELO ==========================================
-## [Data] — [HTTP] [rota]
-Integrantes e papéis: Driver: ... | Navigator: ...
-Problema: 
-Nossa tentativa: ...
-Prompt enviado à IA: “...”
-Sugestão da IA: ...
-Decisão da dupla: aceitar / adaptar / rejeitar — porque ...
-Teste realizado: ...
-Resultado obtido: HTTP ... | JSON ...
-Evidência: captura/arquivo/commit ...
-O que aprendemos: ...
-
-
-============================================================================================
-## [21/10/2026] GET /eletronico — Model Eletronico::listar()   
-Integrantes e papéis: Driver: [Nome] | Navigator: [Nome]   
-Problema: Definição da consulta SQL com LEFT JOIN e cálculo de estoque_baixo.   
-Nossa tentativa: Propor o uso de `LEFT JOIN` para garantir que produtos sem registo na tabela de estoque não fossem ocultados da listagem.
-Prompt enviado à IA: Resposta do usuário escolhendo LEFT JOIN.   
-Sugestão da IA: Confirmar LEFT JOIN com COALESCE e orientar sobre o cálculo condicional na SQL.   
-Decisão da dupla: Aceitar. Escrever o método listar() no Model Eletronico.   
-Teste realizado: Análise lógica da consulta no MySQL Workbench.   
-Resultado obtido: Aguardando envio do código da dupla para revisão.   
-O que aprendemos: A diferença prática do LEFT JOIN para não ocultar produtos e como projetar campos calculados.   
+======================================================================================================
+## [28/10/2026] DELETE /eletronico?id=1 — EletronicoController::desativar() [CT18]
+Integrantes e papéis: Driver: Nicoly | Navigator: Nicoly  
+Problema: Executar a desativação de um eletrônico mantendo a integridade referencial com a tabela `movimentacoes` e preservando o histórico de auditoria.  
+Nossa tentativa: Enviar a requisição `DELETE /eletronico?id=1` sem corpo JSON no Postman.  
+Prompt enviado à IA: Imagem do Postman com o retorno `200 OK` e a mensagem `"Eletrônico desativado com sucesso."`, pedindo auxílio para documentar o CT18.  
+Sugestão da IA: Explicar a diferença entre exclusão lógica (`UPDATE ativo = 0`) e exclusão física (`DELETE FROM`), destacando o impacto na restrição de chave estrangeira (`ON DELETE RESTRICT`).  
+Decisão da dupla: Aplicar a exclusão lógica na Model `Eletronico`, garantindo que o produto `id=1` continue na base de dados para auditoria, mas indisponível para novas movimentações.  
+Teste realizado: Requisição `DELETE http://localhost/.../api_eletronicos/eletronico?id=1` no Postman.  
+Resultado obtido: Status `200 OK` com JSON `{"erro": false, "mensagem": "Eletrônico desativado com sucesso."}` e coluna `ativo = 0` gravada no MySQL.  
+O que aprendemos: Como a exclusão lógica garante a integridade referencial do banco relacional e preserva o histórico de auditoria exigido por normas de negócio.  
+======================================================================================================
