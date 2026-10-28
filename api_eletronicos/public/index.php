@@ -98,6 +98,17 @@ switch ($uri) {
         }
         break;
 
+    // Rota de Dashboard / Indicadores (CT11)
+    case '/resumo':
+        $controller = new EletronicoController();
+
+        if ($method === 'GET') {
+            $controller->resumo();
+        } else {
+            JsonView::render(['erro' => true, 'mensagem' => 'Método HTTP não permitido para esta rota.'], 405);
+        }
+        break;
+
     // Rota padrão para endpoints não mapeados
     default:
         JsonView::render(['erro' => true, 'mensagem' => 'Rota não encontrada.'], 404);

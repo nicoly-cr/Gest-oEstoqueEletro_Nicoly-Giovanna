@@ -285,4 +285,28 @@ class Eletronico
         $stmt = $pdo->prepare($sql);
         return $stmt->execute([':id' => $id]);
     }
+
+    /**
+     * CT11: Obtém os indicadores consolidados (métricas) para o dashboard/resumo do estoque.
+     *
+     * @return array
+     */
+    public static function obterResumo(): array
+    {
+        $pdo = Database::getInstance();
+
+        $sql = "
+            SELECT 
+                COUNT(e.id_eletronico) AS total_produtos_ativos,
+                COALESCE(SUM(est.quantidade_atual), 0) AS total_itens_estoque,
+                COALESCE(SUM(CASE WHEN est.quantidade_atual <= e.estoque_minimo THEN 1 ELSE 0 END), 0) AS total_estoque_baixo,
+                COALESCE(SUM(est.quantidade_atual * e.preco), 0) AS valor_total_inventario
+            FROM eletronicos e
+            LEFT JOIN estoque est ON e.id_eletronico = est.id_eletronico
+            WHERE e.ativo = 1
+        ";
+
+        $stmt = $pdo->query($sql);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }

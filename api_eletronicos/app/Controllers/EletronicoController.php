@@ -192,6 +192,26 @@ class EletronicoController
             ], 400);
         }
     }
+
+    /**
+     * Rota 6: DELETE /eletronico — Desativa dados de um eletrônico
+     */
+    public function resumo(): void
+    {
+        try {
+            $dados = Eletronico::obterResumo();
+
+            JsonView::render([
+                'erro'  => false,
+                'dados' => $dados
+            ], 200);
+        } catch (Exception $e) {
+            JsonView::render([
+                'erro'     => true,
+                'mensagem' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
 
 ?>
