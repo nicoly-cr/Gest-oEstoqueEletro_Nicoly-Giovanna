@@ -77,6 +77,28 @@ switch ($uri) {
         }
         break;
 
+    // Rota 3: GET /eletronicoId?id={ID}
+    case '/eletronicoId':
+        if ($method === 'GET') {
+            $controller = new EletronicoController();
+            $controller->buscarPorId();
+        } else {
+            JsonView::render(['erro' => true, 'mensagem' => 'Método não permitido.'], 405);
+        }
+        break;
+
+    // Rota 4: GET /eletronicoNome?nome={termo}
+    case '/eletronicoNome':
+        $controller = new EletronicoController();
+        if ($method === 'GET') {
+            $controller->buscarPorNome();
+        } else {
+            JsonView::render(['erro' => true, 'mensagem' => 'Método HTTP não permitido para esta rota.'], 405);
+        }
+        break;
+
+    
+        
     // Rota padrão para endpoints não mapeados
     default:
         JsonView::render(['erro' => true, 'mensagem' => 'Rota não encontrada.'], 404);

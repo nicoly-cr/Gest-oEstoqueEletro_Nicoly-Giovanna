@@ -42,23 +42,26 @@ class Request
     }
 
     /**
-     * Captura a URI/caminho da requisição limpando a Query String.
+     * Captura a URI/caminho da requisição isolando a rota principal da API.
      */
     public static function uri(): string
     {
-        // 1. Extrai apenas o caminho da URL limpando query strings (?id=1)
+        // 1. Obtém o caminho da requisição descartando parâmetros GET (?id=1)
         $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
-        // 2. Identifica o diretório onde o index.php está sendo executado
-        $scriptDir = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+        // 2. Extrai o caminho base do projeto removendo o sufixo public/index.php
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        $basePath = str_replace('/public/index.php', '', $scriptName);
+        $basePath = str_replace('/index.php', '', $basePath);
 
-        // 3. Remove o diretório do script do início do caminho recebido
-        if ($scriptDir !== '/' && strpos($uri, $scriptDir) === 0) {
-            $uri = substr($uri, strlen($scriptDir));
+        // 3. Subtrai a pasta base do caminho completo
+        if (!empty($basePath) && strpos($uri, $basePath) === 0) {
+            $uri = substr($uri, strlen($basePath));
         }
 
-        // 4. Garante o retorno sanitizado da rota com a barra inicial (ex: '/eletronico')
-        return '/' . ltrim($uri, '/');
+        // 4. Garante que retorne a rota normalizada (ex: '/eletronico')
+        $uri = '/' . ltrim($uri, '/');
+        return rtrim($uri, '/') ?: '/';
     }
 }
 
