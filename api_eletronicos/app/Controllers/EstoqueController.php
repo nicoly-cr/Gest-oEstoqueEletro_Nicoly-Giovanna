@@ -47,11 +47,17 @@ class EstoqueController
     }
 
     /**
-    * Rota 6: GET /movimentacoes — Consultar histórico de movimentações
-    */
+     * Rota 6: GET /movimentacoes — Consultar histórico geral ou filtrado por produto (?id={ID})
+     */
     public function historico(): void
     {
-        $movimentacoes = Estoque::historico();
+        // Captura o parâmetro 'id' da Query String (?id=4)
+        $idEletronico = Request::query('id');
+
+        // Força a conversão para int caso exista valor numérico válido
+        $idFiltro = ($idEletronico !== null && is_numeric($idEletronico)) ? (int) $idEletronico : null;
+
+        $movimentacoes = Estoque::historico($idFiltro);
 
         JsonView::render([
             'erro'  => false,

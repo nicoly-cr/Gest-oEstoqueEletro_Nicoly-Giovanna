@@ -98,11 +98,12 @@ class Estoque
     }
 
     /**
-     * Retorna o histórico de movimentações com JOIN no produto e usuário.
+     * Retorna o histórico de movimentações geral ou filtrado por produto.
      *
+     * @param int|null $idEletronico
      * @return array
      */
-    public static function historico(): array
+    public static function historico(?int $idEletronico = null): array
     {
         $pdo = Database::getInstance();
 
@@ -111,7 +112,6 @@ class Estoque
                 m.id_movimentacao,
                 m.id_eletronico,
                 e.nome AS eletronico_nome,
-                u.nome AS usuario_nome,
                 m.tipo,
                 m.quantidade,
                 m.saldo_anterior,
@@ -120,12 +120,20 @@ class Estoque
                 m.data_movimentacao
             FROM movimentacoes m
             INNER JOIN eletronicos e ON m.id_eletronico = e.id_eletronico
-            INNER JOIN usuarios u ON m.id_usuario = u.id_usuario
-            ORDER BY m.data_movimentacao DESC
         ";
 
+        $params = [];
+
+        // Se o parâmetro de filtro por ID foi fornecido (CT10)
+        if ($idEletronico !== null) {
+            $sql .= " WHERE m.id_eletronico = :id_eletronico";
+            $params[':id_eletronico'] = $idEletronico;
+        }
+
+        $sql .= " ORDER BY m.data_movimentacao DESC";
+
         $stmt = $pdo->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
